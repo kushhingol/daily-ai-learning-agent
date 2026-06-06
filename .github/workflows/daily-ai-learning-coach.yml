@@ -40,7 +40,7 @@ jobs:
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
-          AI_VENDOR: ${{ vars.AI_VENDOR || 'OpenAI' }}
+          AI_VENDOR: ${{ vars.AI_VENDOR || 'Gemini' }}
         run: |
           if [ "${AI_VENDOR}" = "Gemini" ]; then
             echo "Using Gemini"

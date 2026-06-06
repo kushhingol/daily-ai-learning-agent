@@ -72,6 +72,7 @@ Useful links:
 | `MAIL_FROM`      | `Your Name <verified-sender@example.com>` |
 | `MAIL_TO`        | `YOUR_EMAIL@example.com`                  |
 | `GEMINI_API_KEY` | Your Gemini API key                       |
+| `AI_VENDOR`      | `Gemini` or `OpenAI`                      |
 
 Optional repository variable:
 
