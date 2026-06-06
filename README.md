@@ -164,3 +164,26 @@ The normal path asks OpenAI for a fresh topic each day while passing recent `lea
 - stretch challenge
 
 The workflow records completed topics in `learning_history.json` and avoids repeating topics from the last 30 days when alternatives exist.
+
+## 🚀 Let's Connect
+
+<p align="center">
+  <img src="https://media.licdn.com/dms/image/v2/D4D03AQExq8xiys4Maw/profile-displayphoto-shrink_100_100/profile-displayphoto-shrink_100_100/0/1712999308042?e=1782345600&v=beta&t=8iYi3LQrNgnBsRyWtM2_YvsoR1MdtdbXOjl-FXMsEQM" alt="Kush Hingol" width="100" style="border-radius:50%;" />
+</p>
+
+<p align="center">
+  <b>Kush Hingol</b><br>
+  AI • Cloud • Software Engineering • Automation
+</p>
+
+<p align="center">
+  <a href="https://www.linkedin.com/in/kush-hingol/">
+    <img src="https://img.shields.io/badge/Follow%20on-LinkedIn-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
+  </a>
+</p>
+
+<p align="center">
+  If you enjoy this project, let's connect and discuss AI, AWS, Cloud Engineering, Automation, and Software Development.
+</p>
+
+⭐ If this repository helped you, consider giving it a star!
