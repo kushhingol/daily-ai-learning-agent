@@ -1,0 +1,65 @@
+name: Daily AI Learning Coach
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 8:30 AM Asia/Kolkata = 3:00 AM UTC.
+    - cron: "00 3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-ai-learning-coach
+  cancel-in-progress: false
+
+jobs:
+  send-lesson:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Generate and send daily lesson
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          MAIL_TO: ${{ secrets.MAIL_TO }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.5-flash' }}
+          AI_VENDOR: ${{ vars.AI_VENDOR || 'OpenAI' }}
+        run: |
+          if [ "${AI_VENDOR}" = "Gemini" ]; then
+            echo "Using Gemini"
+            python scripts/ai_learning_coach_gemini.py --send
+          else
+            echo "Using OpenAI"
+            python scripts/ai_learning_coach.py --send
+          fi
+
+      - name: Upload generated email preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-email-preview
+          path: |
+            dist/daily-email.md
+            dist/daily-email.html
+
+      - name: Commit learning history
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update daily AI learning history"
+          file_pattern: learning_history.json

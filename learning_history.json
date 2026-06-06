@@ -1,0 +1,99 @@
+[
+  {
+    "date": "2026-06-06",
+    "topic": "HNSW Indexes for Vector Search",
+    "category": "vector databases",
+    "sent": true,
+    "generated_at_utc": "2026-06-06T07:47:19.076411+00:00"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Temperature in LLM Decoding",
+    "category": "LLMs",
+    "sent": false,
+    "generated_at_utc": "2026-06-06T07:51:01.089546+00:00"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Train, Validation, and Test Splits",
+    "category": "ML fundamentals",
+    "sent": true,
+    "generated_at_utc": "2026-06-06T07:54:24.531168+00:00"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "HNSW Indexes for Vector Search",
+    "category": "vector databases",
+    "sent": false,
+    "generated_by": "fallback",
+    "generated_at_utc": "2026-06-06T08:06:51.968453+00:00"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Temperature in LLM Decoding",
+    "category": "LLMs",
+    "sent": true,
+    "generated_by": "fallback",
+    "generated_at_utc": "2026-06-06T08:07:06.924544+00:00"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Train, Validation, and Test Splits",
+    "category": "ML fundamentals",
+    "sent": false,
+    "generated_by": "fallback",
+    "generated_at_utc": "2026-06-06T08:08:33.364373+00:00"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "HNSW Indexes for Vector Search",
+    "category": "vector databases",
+    "sent": false,
+    "generated_by": "fallback",
+    "generated_at_utc": "2026-06-06T08:13:00.631004+00:00"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "HNSW Indexes for Vector Search"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Understanding the Attention Mechanism in Transformers"
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Introduction to Gradient Descent",
+    "category": "ML fundamentals",
+    "sent": false
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "HNSW Indexes for Vector Search",
+    "category": "vector databases",
+    "sent": false
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "HNSW Indexes for Vector Search",
+    "category": "vector databases",
+    "sent": false
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Introduction to AI Ethics Principles",
+    "category": "AI ethics",
+    "sent": false
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Object Detection with YOLO",
+    "category": "computer vision",
+    "sent": true
+  },
+  {
+    "date": "2026-06-06",
+    "topic": "Word Embeddings: Word2Vec and GloVe",
+    "category": "NLP",
+    "sent": true
+  }
+]
