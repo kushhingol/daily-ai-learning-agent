@@ -3,7 +3,7 @@ name: Daily AI Learning Coach
 on:
   schedule:
     # 8:30 AM Asia/Kolkata = 3:00 AM UTC.
-    - cron: "00 3 * * *"
+    - cron: "47 6 * * *"
   workflow_dispatch:
 
 permissions:
