@@ -9,6 +9,7 @@ import html
 import json
 import os
 import smtplib
+import random
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -21,6 +22,9 @@ ROOT = Path(__file__).resolve().parents[1]
 HISTORY_PATH = ROOT / "learning_history.json"
 OUT_DIR = ROOT / "dist"
 ENV_PATH = ROOT / ".env"
+
+MAX_RETRIES = 5
+RETRYABLE_CODES = {429, 500, 502, 503, 504}
 
 
 @dataclass(frozen=True)
@@ -236,6 +240,47 @@ def recent_history_for_prompt(history: list[dict[str, Any]], today: dt.date) -> 
             recent.append({"date": item["date"], "topic": item["topic"], "category": item.get("category", "")})
     return recent[-30:]
 
+def _call_gemini_api(url: str, body: dict, timeout: int = 60) -> dict:
+    """Raw HTTP call to Gemini. Raises urllib.error.HTTPError on failure."""
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+def _with_exponential_backoff(fn, max_retries: int = MAX_RETRIES):
+    """
+    Calls fn() with exponential backoff on retryable HTTP errors.
+    Raises the last exception if all retries are exhausted.
+    """
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            return fn()
+        except urllib.error.HTTPError as e:
+            last_exc = e
+            if e.code not in RETRYABLE_CODES:
+                print(f"Non-retryable HTTP error {e.code}: {e.reason}")
+                raise
+
+            wait = (2 ** attempt) + random.uniform(0.5, 1.5)  # 1.5s, 2.5s, 4.5s, 8.5s, 16.5s
+            print(f"Attempt {attempt + 1}/{max_retries} failed with HTTP {e.code}. "
+                  f"Retrying in {wait:.1f}s...")
+            dt.time.sleep(wait)
+
+        except urllib.error.URLError as e:
+            # Network-level errors (timeouts, DNS failures) — always retry
+            last_exc = e
+            wait = (2 ** attempt) + random.uniform(0.5, 1.5)
+            print(f"Attempt {attempt + 1}/{max_retries} network error: {e.reason}. "
+                  f"Retrying in {wait:.1f}s...")
+            dt.time.sleep(wait)
+
+    raise last_exc
+
 
 def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) -> Topic | None:
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -291,14 +336,25 @@ def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) ->
     request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
     
     try:
-        with urllib.request.urlopen(request, timeout=60) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        payload = _with_exponential_backoff(
+            lambda: _call_gemini_api(url, body, timeout=90),  # increased timeout
+            max_retries=MAX_RETRIES,
+        )
         output_text = extract_gemini_response_text(payload)
         return topic_from_dict(json.loads(output_text))
-    except Exception as exc:
-        print(f"Gemini generation failed: {exc}")
-        return None
 
+    except urllib.error.HTTPError as e:
+        print(f"Gemini generation failed after {MAX_RETRIES} retries — HTTP {e.code}: {e.reason}")
+        return None
+    except urllib.error.URLError as e:
+        print(f"Gemini generation failed — network error: {e.reason}")
+        return None
+    except (json.JSONDecodeError, KeyError, ValueError) as e:
+        print(f"Gemini response parsing failed: {e}")
+        return None
+    except Exception as e:
+        print(f"Gemini generation failed — unexpected error: {e}")
+        return None
 
 def pick_topic(history: list[dict[str, Any]], today: dt.date) -> Topic:
     recent_names = {item["topic"] for item in history}
