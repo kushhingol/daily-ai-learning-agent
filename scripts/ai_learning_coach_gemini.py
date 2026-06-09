@@ -278,14 +278,23 @@ def parse_gemini_json_text(text: str) -> Any:
                 pass
 
         decoder = json.JSONDecoder()
+        candidates: list[Any] = []
         for idx, char in enumerate(trimmed):
-            if char != "{":
+            if char not in "{[":
                 continue
             try:
                 obj, _ = decoder.raw_decode(trimmed[idx:])
-                return obj
+                candidates.append(obj)
             except json.JSONDecodeError:
                 continue
+
+        for candidate in candidates:
+            lesson = find_lesson_object(candidate)
+            if lesson is not None:
+                return candidate
+
+        if candidates:
+            return candidates[0]
 
         raise first_error
 
