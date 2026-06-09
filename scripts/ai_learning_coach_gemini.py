@@ -226,10 +226,82 @@ def lesson_schema() -> dict[str, Any]:
 
 
 def extract_gemini_response_text(payload: dict[str, Any]) -> str:
-    try:
-        return payload["candidates"][0]["content"]["parts"][0]["text"]
-    except (KeyError, IndexError):
+    if not isinstance(payload, dict):
         return ""
+
+    candidates = payload.get("candidates")
+    if isinstance(candidates, list) and candidates:
+        content = candidates[0].get("content")
+        if isinstance(content, dict):
+            parts = content.get("parts")
+            if isinstance(parts, list) and parts:
+                return str(parts[0].get("text", ""))
+            return str(content.get("text", ""))
+
+        if isinstance(content, list) and content:
+            first = content[0]
+            if isinstance(first, dict):
+                return str(first.get("text", ""))
+
+    if isinstance(payload.get("content"), dict):
+        return str(payload["content"].get("text", ""))
+
+    return ""
+
+
+def parse_gemini_json_text(text: str) -> Any:
+    trimmed = text.strip()
+    if not trimmed:
+        raise ValueError("Gemini returned empty response text")
+
+    try:
+        return json.loads(trimmed)
+    except json.JSONDecodeError as first_error:
+        if trimmed.startswith('"') and trimmed.endswith('"'):
+            try:
+                unwrapped = json.loads(trimmed)
+                return json.loads(unwrapped)
+            except json.JSONDecodeError:
+                pass
+
+        decoder = json.JSONDecoder()
+        for idx, char in enumerate(trimmed):
+            if char != "{":
+                continue
+            try:
+                obj, _ = decoder.raw_decode(trimmed[idx:])
+                return obj
+            except json.JSONDecodeError:
+                continue
+
+        raise first_error
+
+
+def find_lesson_object(data: Any) -> dict[str, Any] | None:
+    if isinstance(data, dict):
+        expected_keys = {
+            "name", "category", "hook", "overview", "terms", "steps",
+            "use_cases", "resource_name", "resource_url", "exercise_title",
+            "exercise_intro", "starter_code", "success_criteria", "stretch",
+            "subtasks"
+        }
+        if expected_keys.issubset(set(data.keys())):
+            return data
+
+        for value in data.values():
+            if isinstance(value, (dict, list)):
+                found = find_lesson_object(value)
+                if found is not None:
+                    return found
+
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, (dict, list)):
+                found = find_lesson_object(item)
+                if found is not None:
+                    return found
+
+    return None
 
 
 def recent_history_for_prompt(history: list[dict[str, Any]], today: dt.date) -> list[dict[str, str]]:
@@ -251,6 +323,81 @@ def _call_gemini_api(url: str, body: dict, timeout: int = 60) -> dict:
     )
     with urllib.request.urlopen(request, timeout=timeout) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def _parse_retry_delay_from_api_error(exc: Any) -> float | None:
+    response_json = getattr(exc, "response_json", None)
+    if isinstance(response_json, dict):
+        error = response_json.get("error", {})
+        details = error.get("details", [])
+        for item in details:
+            if not isinstance(item, dict):
+                continue
+            if item.get("@type", "").endswith("RetryInfo"):
+                retry_delay = item.get("retryDelay")
+                if isinstance(retry_delay, dict):
+                    seconds = retry_delay.get("seconds") or 0
+                    nanos = retry_delay.get("nanos") or 0
+                    try:
+                        return float(seconds) + float(nanos) / 1_000_000_000
+                    except (TypeError, ValueError):
+                        continue
+                if isinstance(retry_delay, str) and retry_delay.endswith("s"):
+                    try:
+                        return float(retry_delay[:-1])
+                    except ValueError:
+                        continue
+        message = error.get("message", "")
+        if isinstance(message, str):
+            match = __import__("re").search(r"retry in ([0-9.]+)s", message)
+            if match:
+                return float(match.group(1))
+    return None
+
+
+def _call_gemini_sdk_api(model: str, prompt_context: dict[str, Any], api_key: str, system_instruction: str) -> dict[str, Any]:
+    try:
+        from google.genai import client as genai_client, types
+    except ImportError as exc:
+        raise ImportError("google-genai SDK is not installed") from exc
+
+    sdk = genai_client.Client(api_key=api_key)
+    prompt_text = json.dumps(prompt_context)
+    response = sdk.models.generate_content(
+        model=model,
+        contents=[prompt_text],
+        config=types.GenerateContentConfig(
+            system_instruction=system_instruction,
+            response_mime_type="application/json",
+            response_schema=lesson_schema(),
+            max_output_tokens=4000,
+        ),
+    )
+
+    if hasattr(response, "to_json_dict"):
+        return response.to_json_dict()
+    if hasattr(response, "dict"):
+        return response.dict()
+    return response
+
+
+def _get_retry_delay_from_sdk_error(exc: Any) -> float | None:
+    try:
+        from google.genai.errors import APIError, ClientError, ServerError
+    except ImportError:
+        return None
+
+    if not isinstance(exc, (APIError, ClientError, ServerError)):
+        return None
+
+    retry = _parse_retry_delay_from_api_error(exc)
+    if retry is not None:
+        return retry
+
+    if getattr(exc, "code", None) in RETRYABLE_CODES:
+        return 0.0
+    return None
+
 
 def _with_exponential_backoff(fn, max_retries: int = MAX_RETRIES):
     """
@@ -280,6 +427,17 @@ def _with_exponential_backoff(fn, max_retries: int = MAX_RETRIES):
                   f"Retrying in {wait:.1f}s...")
             sleep(wait)
 
+        except Exception as e:
+            retry_delay = _get_retry_delay_from_sdk_error(e)
+            if retry_delay is None:
+                raise
+
+            last_exc = e
+            wait = retry_delay if retry_delay > 0 else (2 ** attempt) + random.uniform(0.5, 1.5)
+            print(f"Attempt {attempt + 1}/{max_retries} failed with SDK rate limit. "
+                  f"Retrying in {wait:.1f}s...")
+            sleep(wait)
+
     raise last_exc
 
 
@@ -290,7 +448,7 @@ def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) ->
         return None
 
     api_key = api_key.strip().strip("[]'\"")
-    env_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    env_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-lite")
     model = env_model.strip().strip("[]'\"")
 
     # Updated category rotation mapping
@@ -334,15 +492,40 @@ def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) ->
     }
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
-    request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
-    
+
+    output_text = ""
+    payload = None
     try:
-        payload = _with_exponential_backoff(
-            lambda: _call_gemini_api(url, body, timeout=90),  # increased timeout
-            max_retries=MAX_RETRIES,
-        )
+        try:
+            payload = _with_exponential_backoff(
+                lambda: _call_gemini_sdk_api(
+                    model=model,
+                    prompt_context=prompt_context,
+                    api_key=api_key,
+                    system_instruction="You are an AI learning coach. Select a category from rotation_categories and return a JSON daily lesson mapping the responseSchema configuration exactly.",
+                ),
+                max_retries=MAX_RETRIES,
+            )
+            print("Using google-genai SDK for Gemini generation.")
+        except ImportError:
+            print("google-genai SDK not available; falling back to HTTP API.")
+            payload = _with_exponential_backoff(
+                lambda: _call_gemini_api(url, body, timeout=90),
+                max_retries=MAX_RETRIES,
+            )
+
         output_text = extract_gemini_response_text(payload)
-        return topic_from_dict(json.loads(output_text))
+
+        if output_text:
+            parsed = parse_gemini_json_text(output_text)
+        else:
+            parsed = payload
+
+        lesson_data = find_lesson_object(parsed)
+        if lesson_data is None:
+            raise ValueError("Gemini JSON did not contain a lesson object with required fields")
+
+        return topic_from_dict(lesson_data)
 
     except urllib.error.HTTPError as e:
         print(f"Gemini generation failed after {MAX_RETRIES} retries — HTTP {e.code}: {e.reason}")
@@ -352,6 +535,11 @@ def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) ->
         return None
     except (json.JSONDecodeError, KeyError, ValueError) as e:
         print(f"Gemini response parsing failed: {e}")
+        if output_text:
+            snippet = output_text[:1200]
+            print(f"Raw Gemini output (truncated): {repr(snippet)}")
+        else:
+            print(f"Raw Gemini payload keys: {list(payload.keys()) if isinstance(payload, dict) else type(payload)}")
         return None
     except Exception as e:
         print(f"Gemini generation failed — unexpected error: {e}")
@@ -520,10 +708,11 @@ def main() -> int:
         sent = send_email(subject, topic, today, html_content)
         
     history.append({
-        "date": today.isoformat(), 
+        "date": today.isoformat(),
         "topic": topic.name,
         "category": topic.category,
-        "sent": sent
+        "sent": sent,
+        "generated_at_utc": dt.datetime.now(dt.timezone.utc).isoformat()
     })
     save_history(history)
     
