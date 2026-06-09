@@ -137,25 +137,38 @@ def save_history(history: list[dict[str, Any]]) -> None:
 
 def topic_from_dict(data: dict[str, Any]) -> Topic:
     return Topic(
-        name=str(data["name"]),
-        category=str(data["category"]),
-        hook=str(data["hook"]),
-        overview=str(data["overview"]),
-        terms=[(str(item["term"]), str(item["definition"])) for item in data["terms"]],
-        steps=[str(item) for item in data["steps"]],
-        use_cases=[str(item) for item in data["use_cases"]],
-        resource_name=str(data["resource_name"]),
-        resource_url=str(data["resource_url"]),
-        exercise_title=str(data["exercise_title"]),
-        exercise_intro=str(data["exercise_intro"]),
-        starter_code=str(data["starter_code"]),
-        success_criteria=[str(item) for item in data["success_criteria"]],
-        stretch=str(data["stretch"]),
-        subtasks=[(str(item["duration"]), str(item["task"])) for item in data["subtasks"]],
+        name=str(data.get("name", "")),
+        category=str(data.get("category", "")),
+        hook=str(data.get("hook", "")),
+        overview=str(data.get("overview", "")),
+        terms=[
+            (str(item.get("term", "")), str(item.get("definition", "")))
+            for item in data.get("terms", [])
+            if isinstance(item, dict)
+        ],
+        steps=[str(item) for item in data.get("steps", [])],
+        use_cases=[str(item) for item in data.get("use_cases", [])],
+        resource_name=str(data.get("resource_name", "")),
+        resource_url=str(data.get("resource_url", "")),
+        exercise_title=str(data.get("exercise_title", "")),
+        exercise_intro=str(data.get("exercise_intro", "")),
+        starter_code=str(data.get("starter_code", "")),
+        success_criteria=[str(item) for item in data.get("success_criteria", [])],
+        stretch=str(data.get("stretch", "")),
+        subtasks=[
+            (str(item.get("duration", "")), str(item.get("task", "")))
+            for item in data.get("subtasks", [])
+            if isinstance(item, dict)
+        ],
         news_block=str(data.get("news_block", "No new updates available for today.")),
         practice_steps=[
-            (str(item["title"]), str(item["duration"]), str(item["instructions"]))
+            (
+                str(item.get("title", "")),
+                str(item.get("duration", "")),
+                str(item.get("instructions", "")),
+            )
             for item in data.get("practice_steps", [])
+            if isinstance(item, dict)
         ],
         expected_output=str(data.get("expected_output", "")),
     )
@@ -279,13 +292,10 @@ def parse_gemini_json_text(text: str) -> Any:
 
 def find_lesson_object(data: Any) -> dict[str, Any] | None:
     if isinstance(data, dict):
-        expected_keys = {
-            "name", "category", "hook", "overview", "terms", "steps",
-            "use_cases", "resource_name", "resource_url", "exercise_title",
-            "exercise_intro", "starter_code", "success_criteria", "stretch",
-            "subtasks"
+        required_keys = {
+            "name", "category", "hook", "overview", "terms", "steps"
         }
-        if expected_keys.issubset(set(data.keys())):
+        if required_keys.issubset(set(data.keys())):
             return data
 
         for value in data.values():
@@ -523,6 +533,13 @@ def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) ->
 
         lesson_data = find_lesson_object(parsed)
         if lesson_data is None:
+            print("Gemini lesson match failed. Parsed output type:", type(parsed).__name__)
+            if isinstance(parsed, dict):
+                print("Parsed keys:", list(parsed.keys()))
+            elif isinstance(parsed, list):
+                print("Parsed list length:", len(parsed))
+                if parsed and isinstance(parsed[0], dict):
+                    print("First item keys:", list(parsed[0].keys()))
             raise ValueError("Gemini JSON did not contain a lesson object with required fields")
 
         return topic_from_dict(lesson_data)
