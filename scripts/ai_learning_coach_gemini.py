@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import datetime as dt
 import json
 import os
 import smtplib
@@ -15,7 +16,6 @@ from dataclasses import dataclass
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
-from datetime import datetime
 from time import sleep
 
 
@@ -270,7 +270,7 @@ def _with_exponential_backoff(fn, max_retries: int = MAX_RETRIES):
             wait = (2 ** attempt) + random.uniform(0.5, 1.5)  # 1.5s, 2.5s, 4.5s, 8.5s, 16.5s
             print(f"Attempt {attempt + 1}/{max_retries} failed with HTTP {e.code}. "
                   f"Retrying in {wait:.1f}s...")
-            dt.time.sleep(wait)
+            sleep(wait)
 
         except urllib.error.URLError as e:
             # Network-level errors (timeouts, DNS failures) — always retry
@@ -278,7 +278,7 @@ def _with_exponential_backoff(fn, max_retries: int = MAX_RETRIES):
             wait = (2 ** attempt) + random.uniform(0.5, 1.5)
             print(f"Attempt {attempt + 1}/{max_retries} network error: {e.reason}. "
                   f"Retrying in {wait:.1f}s...")
-            dt.time.sleep(wait)
+            sleep(wait)
 
     raise last_exc
 
