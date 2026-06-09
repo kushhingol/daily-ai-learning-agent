@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import html
 import json
 import os
@@ -16,6 +15,8 @@ from dataclasses import dataclass
 from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
+from datetime import datetime
+from time import sleep
 
 
 ROOT = Path(__file__).resolve().parents[1]
