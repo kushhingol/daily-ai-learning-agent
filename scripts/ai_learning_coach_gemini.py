@@ -373,6 +373,7 @@ def _call_gemini_sdk_api(model: str, prompt_context: dict[str, Any], api_key: st
 
     sdk = genai_client.Client(api_key=api_key)
     prompt_text = json.dumps(prompt_context)
+    print("Calling Gemini SDK with model '%s'", model)
     response = sdk.models.generate_content(
         model=model,
         contents=[prompt_text],
