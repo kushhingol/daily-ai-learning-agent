@@ -12,5 +12,12 @@
     "category": "RAG",
     "sent": true,
     "generated_at_utc": "2026-06-09T06:35:38.351962+00:00"
+  },
+  {
+    "date": "2026-06-10",
+    "topic": "Understanding Agentic Workflows",
+    "category": "agents",
+    "sent": true,
+    "generated_at_utc": "2026-06-10T06:35:39.708314+00:00"
   }
 ]
