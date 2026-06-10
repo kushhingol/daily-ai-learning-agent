@@ -19,5 +19,12 @@
     "category": "agents",
     "sent": true,
     "generated_at_utc": "2026-06-10T06:35:39.708314+00:00"
+  },
+  {
+    "date": "2026-06-10",
+    "topic": "Optimizing Vector Search with Approximate Nearest Neighbors (ANN)",
+    "category": "vector databases",
+    "sent": true,
+    "generated_at_utc": "2026-06-10T07:47:30.649473+00:00"
   }
 ]
