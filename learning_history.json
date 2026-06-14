@@ -40,5 +40,12 @@
     "category": "computer vision",
     "sent": true,
     "generated_at_utc": "2026-06-13T08:01:35.183080+00:00"
+  },
+  {
+    "date": "2026-06-14",
+    "topic": "Introduction to Recurrent Neural Networks (RNNs)",
+    "category": "ML fundamentals",
+    "sent": true,
+    "generated_at_utc": "2026-06-14T08:01:34.683829+00:00"
   }
 ]
