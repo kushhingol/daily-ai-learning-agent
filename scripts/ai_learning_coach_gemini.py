@@ -57,9 +57,15 @@ TOPICS: list[Topic] = [
         hook="Fast vector search is the retrieval layer behind many useful RAG systems.",
         overview="HNSW is an approximate nearest-neighbor index that stores vectors in a layered graph so similar items can be found quickly without scanning every vector.",
         terms=[
-            ("Embedding", "A list of numbers that represents the meaning of text, images, or other data."),
+            (
+                "Embedding",
+                "A list of numbers that represents the meaning of text, images, or other data.",
+            ),
             ("Nearest neighbor", "The stored vector most similar to a query vector."),
-            ("Approximate search", "A faster search that may trade perfect accuracy for very close results."),
+            (
+                "Approximate search",
+                "A faster search that may trade perfect accuracy for very close results.",
+            ),
             ("Recall", "How often the search returns the truly relevant matches."),
         ],
         steps=[
@@ -230,10 +236,24 @@ def lesson_schema() -> dict[str, Any]:
             "news_block": {"type": "string"},
         },
         "required": [
-            "name", "category", "hook", "overview", "terms", "steps", 
-            "use_cases", "resource_name", "resource_url", "exercise_title", 
-            "exercise_intro", "starter_code", "practice_steps", "subtasks", 
-            "success_criteria", "expected_output", "stretch", "news_block"
+            "name",
+            "category",
+            "hook",
+            "overview",
+            "terms",
+            "steps",
+            "use_cases",
+            "resource_name",
+            "resource_url",
+            "exercise_title",
+            "exercise_intro",
+            "starter_code",
+            "practice_steps",
+            "subtasks",
+            "success_criteria",
+            "expected_output",
+            "stretch",
+            "news_block",
         ],
     }
 
@@ -301,9 +321,7 @@ def parse_gemini_json_text(text: str) -> Any:
 
 def find_lesson_object(data: Any) -> dict[str, Any] | None:
     if isinstance(data, dict):
-        required_keys = {
-            "name", "category", "hook", "overview", "terms", "steps"
-        }
+        required_keys = {"name", "category", "hook", "overview", "terms", "steps"}
         if required_keys.issubset(set(data.keys())):
             return data
 
@@ -323,14 +341,23 @@ def find_lesson_object(data: Any) -> dict[str, Any] | None:
     return None
 
 
-def recent_history_for_prompt(history: list[dict[str, Any]], today: dt.date) -> list[dict[str, str]]:
+def recent_history_for_prompt(
+    history: list[dict[str, Any]], today: dt.date
+) -> list[dict[str, str]]:
     cutoff = today - dt.timedelta(days=30)
     recent = []
     for item in history:
         item_date = dt.date.fromisoformat(item["date"])
         if item_date >= cutoff:
-            recent.append({"date": item["date"], "topic": item["topic"], "category": item.get("category", "")})
+            recent.append(
+                {
+                    "date": item["date"],
+                    "topic": item["topic"],
+                    "category": item.get("category", ""),
+                }
+            )
     return recent[-30:]
+
 
 def _call_gemini_api(url: str, body: dict, timeout: int = 60) -> dict:
     """Raw HTTP call to Gemini. Raises urllib.error.HTTPError on failure."""
@@ -374,7 +401,9 @@ def _parse_retry_delay_from_api_error(exc: Any) -> float | None:
     return None
 
 
-def _call_gemini_sdk_api(model: str, prompt_context: dict[str, Any], api_key: str, system_instruction: str) -> dict[str, Any]:
+def _call_gemini_sdk_api(
+    model: str, prompt_context: dict[str, Any], api_key: str, system_instruction: str
+) -> dict[str, Any]:
     try:
         from google.genai import client as genai_client, types
     except ImportError as exc:
@@ -434,17 +463,23 @@ def _with_exponential_backoff(fn, max_retries: int = MAX_RETRIES):
                 print(f"Non-retryable HTTP error {e.code}: {e.reason}")
                 raise
 
-            wait = (2 ** attempt) + random.uniform(0.5, 1.5)  # 1.5s, 2.5s, 4.5s, 8.5s, 16.5s
-            print(f"Attempt {attempt + 1}/{max_retries} failed with HTTP {e.code}. "
-                  f"Retrying in {wait:.1f}s...")
+            wait = (2**attempt) + random.uniform(
+                0.5, 1.5
+            )  # 1.5s, 2.5s, 4.5s, 8.5s, 16.5s
+            print(
+                f"Attempt {attempt + 1}/{max_retries} failed with HTTP {e.code}. "
+                f"Retrying in {wait:.1f}s..."
+            )
             sleep(wait)
 
         except urllib.error.URLError as e:
             # Network-level errors (timeouts, DNS failures) — always retry
             last_exc = e
-            wait = (2 ** attempt) + random.uniform(0.5, 1.5)
-            print(f"Attempt {attempt + 1}/{max_retries} network error: {e.reason}. "
-                  f"Retrying in {wait:.1f}s...")
+            wait = (2**attempt) + random.uniform(0.5, 1.5)
+            print(
+                f"Attempt {attempt + 1}/{max_retries} network error: {e.reason}. "
+                f"Retrying in {wait:.1f}s..."
+            )
             sleep(wait)
 
         except Exception as e:
@@ -453,15 +488,23 @@ def _with_exponential_backoff(fn, max_retries: int = MAX_RETRIES):
                 raise
 
             last_exc = e
-            wait = retry_delay if retry_delay > 0 else (2 ** attempt) + random.uniform(0.5, 1.5)
-            print(f"Attempt {attempt + 1}/{max_retries} failed with SDK rate limit. "
-                  f"Retrying in {wait:.1f}s...")
+            wait = (
+                retry_delay
+                if retry_delay > 0
+                else (2**attempt) + random.uniform(0.5, 1.5)
+            )
+            print(
+                f"Attempt {attempt + 1}/{max_retries} failed with SDK rate limit. "
+                f"Retrying in {wait:.1f}s..."
+            )
             sleep(wait)
 
     raise last_exc
 
 
-def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) -> Topic | None:
+def generate_topic_with_gemini(
+    history: list[dict[str, Any]], today: dt.date
+) -> Topic | None:
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
         print("GEMINI_API_KEY is not set. Using local fallback.")
@@ -473,42 +516,51 @@ def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) ->
 
     # Updated category rotation mapping
     categories = [
-        "ML fundamentals",
-        "LLMs",
-        "computer vision",
-        "NLP",
-        "MLOps",
-        "AI ethics",
-        "vector databases",
-        "agents",
-        "fine-tuning",
-        "RAG",
-        "skills and tools",
-        "embeddings",
+        # Primary Priorities
+        "prompt and context engineering",
+        "agentic design patterns",
         "ai workflow automation",
+        "tool use and orchestration",
+        "multi-agent systems",
+        # Technical Building Blocks
+        "RAG and retrieval systemsLLM fine-tuning",
+        "vector databases",
+        "embeddings",
         "multimodal models",
-        "ai code agents"
+        # Foundational & Specialized
+        "MLOps and evaluation",
+        "ai governance and ethics",
+        "computer vision",
+        "NLP fundamentals",
+        "ai code agents",
     ]
-    
+
     prompt_context = {
         "date": today.isoformat(),
         "recent_lessons": recent_history_for_prompt(history, today),
         "rotation_categories": categories,
         "requirements": [
-            "Pick one focused concept out of the rotation_categories list for a 60-minute lesson.",
+            "Pick one focused concept from the rotation_categories list for a 60-minute lesson.",
+            "Prioritize 'prompt and context engineering' and 'agentic design patterns' for the next two sessions.",
             "Do not repeat topics or categories that appeared recently.",
-            "Generate a news_block string summarizing the 5-min latest breakthroughs for 2026."
+            "Generate a news_block string summarizing the top 3-5 high-impact breakthroughs in AI agents and workflow automation from the last 7 days.",
         ],
     }
 
     body = {
         "contents": [{"parts": [{"text": json.dumps(prompt_context)}]}],
-        "systemInstruction": {"parts": [{"text": "You are an AI learning coach. Select a category from rotation_categories and return a JSON daily lesson mapping the responseSchema configuration exactly."}]},
+        "systemInstruction": {
+            "parts": [
+                {
+                    "text": "You are an AI learning coach. Select a category from rotation_categories and return a JSON daily lesson mapping the responseSchema configuration exactly."
+                }
+            ]
+        },
         "generationConfig": {
             "responseMimeType": "application/json",
             "responseSchema": lesson_schema(),
             "maxOutputTokens": 4000,
-        }
+        },
     }
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -543,19 +595,25 @@ def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) ->
 
         lesson_data = find_lesson_object(parsed)
         if lesson_data is None:
-            print("Gemini lesson match failed. Parsed output type:", type(parsed).__name__)
+            print(
+                "Gemini lesson match failed. Parsed output type:", type(parsed).__name__
+            )
             if isinstance(parsed, dict):
                 print("Parsed keys:", list(parsed.keys()))
             elif isinstance(parsed, list):
                 print("Parsed list length:", len(parsed))
                 if parsed and isinstance(parsed[0], dict):
                     print("First item keys:", list(parsed[0].keys()))
-            raise ValueError("Gemini JSON did not contain a lesson object with required fields")
+            raise ValueError(
+                "Gemini JSON did not contain a lesson object with required fields"
+            )
 
         return topic_from_dict(lesson_data)
 
     except urllib.error.HTTPError as e:
-        print(f"Gemini generation failed after {MAX_RETRIES} retries — HTTP {e.code}: {e.reason}")
+        print(
+            f"Gemini generation failed after {MAX_RETRIES} retries — HTTP {e.code}: {e.reason}"
+        )
         return None
     except urllib.error.URLError as e:
         print(f"Gemini generation failed — network error: {e.reason}")
@@ -566,11 +624,14 @@ def generate_topic_with_gemini(history: list[dict[str, Any]], today: dt.date) ->
             snippet = output_text[:1200]
             print(f"Raw Gemini output (truncated): {repr(snippet)}")
         else:
-            print(f"Raw Gemini payload keys: {list(payload.keys()) if isinstance(payload, dict) else type(payload)}")
+            print(
+                f"Raw Gemini payload keys: {list(payload.keys()) if isinstance(payload, dict) else type(payload)}"
+            )
         return None
     except Exception as e:
         print(f"Gemini generation failed — unexpected error: {e}")
         return None
+
 
 def pick_topic(history: list[dict[str, Any]], today: dt.date) -> Topic:
     recent_names = {item["topic"] for item in history}
@@ -582,12 +643,18 @@ def pick_topic(history: list[dict[str, Any]], today: dt.date) -> Topic:
 
 def render_html_email(topic: Topic, today: dt.date) -> str:
     display_date = f"{today.strftime('%B')} {today.day}, {today.year}"
-    
-    terms_html = "".join(f"<li><strong>{html.escape(t)}:</strong> {html.escape(d)}</li>" for t, d in topic.terms)
+
+    terms_html = "".join(
+        f"<li><strong>{html.escape(t)}:</strong> {html.escape(d)}</li>"
+        for t, d in topic.terms
+    )
     steps_html = "".join(f"<li>{html.escape(s)}</li>" for s in topic.steps)
     use_cases_html = "".join(f"<li>{html.escape(u)}</li>" for u in topic.use_cases)
-    subtasks_html = "".join(f"<li><strong>{html.escape(dur)}:</strong> {html.escape(tsk)}</li>" for dur, tsk in topic.subtasks)
-    
+    subtasks_html = "".join(
+        f"<li><strong>{html.escape(dur)}:</strong> {html.escape(tsk)}</li>"
+        for dur, tsk in topic.subtasks
+    )
+
     # Safely convert plain text or markdown bullets from news_block to HTML breaks
     formatted_news = html.escape(topic.news_block).replace("\n", "<br/>")
     escaped_code = html.escape(topic.starter_code.rstrip())
@@ -684,8 +751,16 @@ def render_html_email(topic: Topic, today: dt.date) -> str:
 </html>
 """
 
+
 def send_email(subject: str, topic: Topic, today: dt.date, html_body: str) -> bool:
-    required = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "MAIL_FROM", "MAIL_TO"]
+    required = [
+        "SMTP_HOST",
+        "SMTP_PORT",
+        "SMTP_USER",
+        "SMTP_PASS",
+        "MAIL_FROM",
+        "MAIL_TO",
+    ]
     missing = [name for name in required if not os.environ.get(name)]
     if missing:
         print(f"Email not sent. Missing environment variables: {', '.join(missing)}")
@@ -707,8 +782,6 @@ def send_email(subject: str, topic: Topic, today: dt.date, html_body: str) -> bo
     return True
 
 
-
-
 def main() -> int:
     load_dotenv()
     parser = argparse.ArgumentParser()
@@ -717,32 +790,34 @@ def main() -> int:
 
     today = dt.date.today()
     history = load_history()
-    
+
     topic = generate_topic_with_gemini(history, today) or pick_topic(history, today)
-    
+
     display_date = f"{today.strftime('%B')} {today.day}, {today.year}"
     subject = f"🧠 AI Today: {topic.name} - {display_date}"
-    
+
     # Render unified layout
     html_content = render_html_email(topic, today)
 
     # Save artifact strictly as HTML inside output location
     OUT_DIR.mkdir(exist_ok=True)
     (OUT_DIR / "daily-email.html").write_text(html_content, encoding="utf-8")
-    
+
     sent = False
     if args.send:
         sent = send_email(subject, topic, today, html_content)
-        
-    history.append({
-        "date": today.isoformat(),
-        "topic": topic.name,
-        "category": topic.category,
-        "sent": sent,
-        "generated_at_utc": dt.datetime.now(dt.timezone.utc).isoformat()
-    })
+
+    history.append(
+        {
+            "date": today.isoformat(),
+            "topic": topic.name,
+            "category": topic.category,
+            "sent": sent,
+            "generated_at_utc": dt.datetime.now(dt.timezone.utc).isoformat(),
+        }
+    )
     save_history(history)
-    
+
     print(f"Generated topic: {topic.name} ({topic.category})")
     print(f"Success! Output file compiled at: {OUT_DIR / 'daily-email.html'}")
     print(f"Email sent: {'Yes' if sent else 'No'}")
@@ -751,4 +826,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
