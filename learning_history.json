@@ -26,5 +26,12 @@
     "category": "prompt and context engineering",
     "sent": true,
     "generated_at_utc": "2026-06-27T01:31:06.896624+00:00"
+  },
+  {
+    "date": "2026-06-29",
+    "topic": "Designing Effective Multi-Agent Systems",
+    "category": "agentic design patterns",
+    "sent": true,
+    "generated_at_utc": "2026-06-29T01:31:01.858705+00:00"
   }
 ]
