@@ -40,5 +40,12 @@
     "category": "agentic design patterns",
     "sent": true,
     "generated_at_utc": "2026-07-01T01:31:26.779125+00:00"
+  },
+  {
+    "date": "2026-07-03",
+    "topic": "Mastering System Prompts for AI Agents",
+    "category": "prompt and context engineering",
+    "sent": true,
+    "generated_at_utc": "2026-07-03T01:31:32.728266+00:00"
   }
 ]
