@@ -68,5 +68,12 @@
     "category": "RAG and retrieval systems",
     "sent": true,
     "generated_at_utc": "2026-07-09T01:31:26.929254+00:00"
+  },
+  {
+    "date": "2026-07-11",
+    "topic": "Leveraging AI Agents for Automated Data Analysis",
+    "category": "ai workflow automation",
+    "sent": true,
+    "generated_at_utc": "2026-07-11T01:31:22.392395+00:00"
   }
 ]
