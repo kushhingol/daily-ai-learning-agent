@@ -75,5 +75,12 @@
     "category": "ai workflow automation",
     "sent": true,
     "generated_at_utc": "2026-07-11T01:31:22.392395+00:00"
+  },
+  {
+    "date": "2026-07-13",
+    "topic": "Prompt Chaining for Complex Workflows",
+    "category": "prompt and context engineering",
+    "sent": true,
+    "generated_at_utc": "2026-07-13T01:31:34.886037+00:00"
   }
 ]
